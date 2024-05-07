@@ -40,11 +40,11 @@ bHP, aHP = signal.butter(2, f05/fs*2, 'highpass')  # Diseño del filtro pasa alt
 yfHP = signal.lfilter(bHP, aHP, yfLP)  # Aplicación del filtro pasa altos
 yfBP = yfLP-yfHP  # Señal filtrada pasa banda
 
-# #Notch filter   ? Necesary
-# notchFreq = 50.0 
-# qF = 20.0
-# b_notch, a_notch = signal.iirnotch(notchFreq, qF, fs)
-# fNotch = signal.filtfilt(b_notch, a_notch, yfBP)
+#Notch filter   ? Necesary
+notchFreq = 50.0 
+qF = 20.0
+b_notch, a_notch = signal.iirnotch(notchFreq, qF, fs)
+fNotch = signal.filtfilt(b_notch, a_notch, yfBP)
 
 # plt.plot(faxis, y1, pen ='y', name ='Señal original')
 # plt.plot(faxis, yfHP, pen ='y', name ='Passband Filter')
@@ -121,16 +121,6 @@ mapsdFilter = (sistoleFilter-diastoleFilter/3)+diastoleFilter
 print("Sistole: ", sistoleFilter)
 print("Diastole: ", diastoleFilter)
 print("MAP: ", mapsdFilter)
-
-
-
-# sistole = yfBP[indexGlobalMax+maxOscilometric]/0.75
-# diastole = yfBP[indexGlobalMax+maxOscilometric]*0.7
-# mapsd = (sistole-diastole/3)+diastole
-
-# print("Sistole: ", sistole)
-# print("Diastole: ", diastole)
-# print("MAP: ", mapsd)
 
 plt2 = pg.plot()
 plt2.showGrid(x=True, y=True)

@@ -49,14 +49,15 @@ class SerialReader(QThread):
         self.plot_widget = plot_widget
         self.max_attempts = 3
         self.attempts = 0
+        self.dataValues = 1
         self.is_reading = True
+        self.multiLanes = False
         self.start_time = time.time()
         self.current_time = []
-        self.multiLanes = False
         self.data_value = []
         self.data_value_extra = []
         self.fileName = "default"
-        self.dataValues = 1
+
 
     def run(self):
         while self.attempts < self.max_attempts:
@@ -65,14 +66,11 @@ class SerialReader(QThread):
                     self.serial_connection = ser
                     while self.is_reading:
                         data = ser.readline().decode('utf-8').strip()
-                        # print("Data received:", data)
                         try:
-                            if ',' in data:  # Comprobar si hay una coma en los datos
+                            if ',' in data:  
                                 data_values = data.split(', ')
                                 if len(data_values) == 2:
                                     self.dataValues = 2
-                                    # firsttime = round(time.time() - self.start_time, 5)
-                                    # self.current_time.append(float(data_values[0]))
                                     timeOn = len(self.current_time)
                                     self.current_time.append(timeOn)
                                     self.data_value.append(
@@ -94,7 +92,6 @@ class SerialReader(QThread):
                                         "Error: Incorrect number of values for multilane data")
                             else:
                                 data = float(data)
-                                # timeOn = round(time.time() - self.start_time,5)
                                 timeOn = len(self.current_time)
                                 self.current_time.append(timeOn)
                                 self.data_value.append(data)
@@ -111,8 +108,7 @@ class SerialReader(QThread):
                     return
                 else:
                     print(f"Retrying connection... Attempt {
-                          self.attempts}/{self.max_attempts}")
-                    # Wait 3 seconds before attempting to reconnect
+                            self.attempts}/{self.max_attempts}")
                     time.sleep(3)
         if self.serial_connection is not None:
             self.serial_connection.close()
@@ -126,7 +122,6 @@ class SerialReader(QThread):
                 None, "Select Folder to Save Image", options=options)
             if folder_path:
                 os.makedirs(folder_path, exist_ok=True)
-
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 subfolder_name = f"measure_{timestamp}"
                 subfolder_path = os.path.join(folder_path, subfolder_name)
@@ -137,7 +132,7 @@ class SerialReader(QThread):
                     subfolder_path, f"{self.fileName}_proteusSample_{timestamp}.txt")
                 filename_png = os.path.join(
                     subfolder_path, f"{self.fileName}_Graph_{timestamp}.png")
-
+                
                 if self.dataValues < 3:
                     with open(filename_csv, mode='w', newline='') as file:
                         writer = csv.writer(file)
@@ -150,7 +145,7 @@ class SerialReader(QThread):
                     with open(filename_txt, 'w') as txtfile:
                         for i in range(len(self.data_value)):
                             txtfile.write(f"{self.current_time[i]}\t{
-                                          self.data_value[i]}\n")
+                                            self.data_value[i]}\n")
                     self.plot_widget.save_image(filename_png)
                 else:
                     with open(filename_csv, mode='w', newline='') as file:
@@ -209,11 +204,8 @@ class dataAnalysis:
         plt.addLegend()
         plt.setLabel('left', 'Valores Verticales', units='V')
         plt.setLabel('bottom', 'Datos', units='s')
-
-        # plt.plot(self.faxis, y1, pen ='y', name ='Señal original')
-        # plt.plot(self.faxis, yfHP, pen ='y', name ='Passband Filter')
+        
         plt.plot(self.faxis, yfBP, pen ='g', name ='Señal filtrada')
-        # plt.plot(self.faxis, fNotch, pen ='r', name ='Notch Filter')
 
         indexGlobalMax = np.argmax(yfBP)
         newfHP = yfHP[indexGlobalMax:]
@@ -446,7 +438,6 @@ class mainWindow(QMainWindow):
         while not self.connection_successful:
             if comSelected != "-" and baudSelected != "-":
                 try:
-
                     self.layout.removeWidget(self.button)
                     self.layout.removeWidget(self.baudList)
                     self.layout.removeWidget(self.comList)
@@ -459,22 +450,25 @@ class mainWindow(QMainWindow):
                     self.button.deleteLater()
 
                     self.resize(1200, 920)
+                    
                     self.layout = QGridLayout()
                     self.plotWidget = RealTimePlot(comSelected, baudSelected)
                     self.plotWidget.serial_reader.multiLanes = lanes
                     self.layout.addWidget(self.plotWidget, 0, 0, 1, 0)
                     self.saveButton = QPushButton("SaveData")
+                    self.analysisButton = QPushButton("StartAnalysis")
+                    self.closeButton = QPushButton("Close")
+                    self.restartButton = QPushButton("Restart")
+                    
                     self.saveButton.setFixedSize(200, 150)
                     self.saveButton.clicked.connect(self.saveData)
-                    self.analysisButton = QPushButton("StartAnalysis")
                     self.analysisButton.setFixedSize(200, 150)
                     self.analysisButton.clicked.connect(self.analysis)
-                    self.closeButton = QPushButton("Close")
                     self.closeButton.setFixedSize(200, 150)
                     self.closeButton.clicked.connect(self.close)
-                    self.restartButton = QPushButton("Restart")
                     self.restartButton.setFixedSize(200, 150)
                     self.restartButton.clicked.connect(self.restart_program)
+                    
                     self.layout.addWidget(self.saveButton, 1, 0)
                     self.layout.addWidget(self.analysisButton, 1, 1)
                     self.layout.addWidget(self.closeButton, 1, 2)
@@ -486,9 +480,6 @@ class mainWindow(QMainWindow):
                     self.textInput = QLineEdit()
                     self.textInput.setMaxLength(25)
                     self.textInput.setPlaceholderText("Enter your file name")
-                    self.textInput.returnPressed.connect(self.return_pressed)
-                    self.textInput.selectionChanged.connect(
-                        self.selection_changed)
                     self.textInput.textChanged.connect(self.text_changed)
                     self.textInput.textEdited.connect(self.text_edited)
                     self.layout.addWidget(self.textInput, 1, 4)
@@ -522,10 +513,6 @@ class mainWindow(QMainWindow):
                     self.textInput_sampleRate.setMaxLength(25)
                     self.textInput_sampleRate.setPlaceholderText(
                         "Enter your sample rate")
-                    self.textInput_sampleRate.returnPressed.connect(
-                        self.return_pressed_sampleRate)
-                    self.textInput_sampleRate.selectionChanged.connect(
-                        self.selection_changed_sampleRate)
                     self.textInput_sampleRate.textChanged.connect(
                         self.text_changed_sampleRate)
                     self.textInput_sampleRate.textEdited.connect(
@@ -553,7 +540,6 @@ class mainWindow(QMainWindow):
 
     def analysis(self):
         self.plotWidget.serial_reader.stop_reading()
-        # self.plotWidget.stop_reading()
         self.plotWidget.serial_reader.fileName = self.text
         self.data_path = self.plotWidget.serial_reader.saveData()
         if self.data_path:
@@ -568,25 +554,12 @@ class mainWindow(QMainWindow):
         else:
             print("Error on data file, try again")
 
-    def return_pressed(self):
-        print("Return pressed!")
-
-    def selection_changed(self):
-        print("Selection changed")
-        print(self.centralWidget().selectedText())
 
     def text_changed(self, s):
         self.text = s
 
     def text_edited(self, s):
         self.text = s
-
-    def return_pressed_sampleRate(self):
-        print("Return pressed!")
-
-    def selection_changed_sampleRate(self):
-        print("Selection changed")
-        print(self.centralWidget().selectedText())
 
     def text_changed_sampleRate(self, s):
         self.sampleRate = s
@@ -596,7 +569,7 @@ class mainWindow(QMainWindow):
 
     def close(self):
         reply = QMessageBox.question(self, 'Confirmación', '¿Estás seguro de que deseas cerrar la aplicación?',
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             QApplication.quit()
 
